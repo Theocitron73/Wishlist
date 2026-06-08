@@ -95,7 +95,7 @@ function App() {
   useEffect(() => {
   console.log("Valeur de user dans App:", user); // Regarde si c'est null dans la console F12
   if (user) {
-    fetch(`${process.env.REACT_APP_API_URL}/items/${user}`)
+    fetch(`${process.env.API_BASE_URL}/items/${user}`)
       .then(res => res.json())
       .then(data => {
         console.log("Items reçus:", data);
