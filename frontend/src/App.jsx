@@ -128,25 +128,9 @@ const SortableItem = ({ item, index, deleteItem, updateItem }) => {
 function App() {
   const [user, setUser] = useState(localStorage.getItem('username'));
 
-  // Ajoute cet état dans ton composant App
-const [isWakingUp, setIsWakingUp] = useState(false);
-
-// Modifie tes appels performApiCall pour inclure la gestion du réveil
-// Renomme bien ta fonction comme ceci :
-const performApiCall = async (url, options = {}) => {
-  setIsWakingUp(true);
-  try {
-    // Utilise window.fetch pour être sûr d'appeler la fonction native du navigateur
-    const response = await window.fetch(url, options);
-    return response;
-  } finally {
-    setIsWakingUp(false);
-  }
-};
-
 const updateItem = async (id, updatedData) => {
     try {
-      const response = await performApiCall(`${API_BASE_URL}/items/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/items/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedData)
@@ -193,7 +177,7 @@ const updateItem = async (id, updatedData) => {
   console.log("Valeur de user dans App:", user); // Regarde si c'est null dans la console F12
   if (user) {
 
-    performApiCall(`${API_BASE_URL}/items/${user}`)
+    fetch(`${API_BASE_URL}/items/${user}`)
       .then(res => res.json())
       .then(data => {
         console.log("Items reçus:", data);
@@ -205,7 +189,7 @@ const updateItem = async (id, updatedData) => {
 
   const deleteItem = async (id) => {
     try {
-      const response = await performApiCall(`${API_BASE_URL}/items/${id}`, { method: 'DELETE' });
+      const response = await fetch(`${API_BASE_URL}/items/${id}`, { method: 'DELETE' });
       if (response.ok) {
         setWishlist(wishlist.filter(item => item.id !== id));
       } else {
@@ -219,7 +203,7 @@ const updateItem = async (id, updatedData) => {
   const handleLogin = async () => {
     if (!usernameInput.trim()) return;
     try {
-      const res = await performApiCall(`${API_BASE_URL}/login`, {
+      const res = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: usernameInput })
@@ -239,7 +223,7 @@ const updateItem = async (id, updatedData) => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await performApiCall(`${API_BASE_URL}/extract-metadata`, {
+      const res = await fetch(`${API_BASE_URL}/extract-metadata`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
@@ -260,7 +244,7 @@ const updateItem = async (id, updatedData) => {
 
   const saveToDatabase = async () => {
     try {
-      const response = await performApiCall(`${API_BASE_URL}/save-item`, {
+      const response = await fetch(`${API_BASE_URL}/save-item`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -275,7 +259,7 @@ const updateItem = async (id, updatedData) => {
         showToast("Produit enregistré avec succès !");
         setProduct(null);
         setUrl('');
-        const res = await performApiCall(`${API_BASE_URL}/items/${user}`);
+        const res = await fetch(`${API_BASE_URL}/items/${user}`);
         const data = await res.json();
         setWishlist(data);
       } else {
@@ -301,7 +285,7 @@ const handleDragEnd = async (event) => {
 
   // 2. Envoyer le nouvel ordre au serveur
   try {
-    await performApiCall(`${API_BASE_URL}/update-order`, {
+    await fetch(`${API_BASE_URL}/update-order`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -349,27 +333,7 @@ if (viewUser) {
 }
 
 return (
-
-
-  
   <div className="modern-container">
-    
-{isWakingUp && (
-  <div style={{
-    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-    background: 'rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column',
-    alignItems: 'center', justifyContent: 'center', zIndex: 9999, color: 'white'
-  }}>
-    <div className="spinner" style={{ 
-      width: '50px', height: '50px', border: '5px solid #3b82f6', 
-      borderTop: '5px solid transparent', borderRadius: '50%', 
-      animation: 'spin 1s linear infinite', marginBottom: '20px' 
-    }}></div>
-    <h2>Réveil du serveur...</h2>
-    <p>Le serveur gratuit Render est en veille, merci de patienter ~30s.</p>
-  </div>
-)}
-
 <header style={{ 
   display: 'flex', 
   justifyContent: 'space-between', 
@@ -538,7 +502,7 @@ function PublicView({ username }) {
   }, []);
 
   useEffect(() => {
-    performApiCall(`${API_BASE_URL}/items/${username}`)
+    fetch(`${API_BASE_URL}/items/${username}`)
       .then(res => res.json())
       .then(data => setItems(data))
       .catch(err => console.error("Erreur:", err));
