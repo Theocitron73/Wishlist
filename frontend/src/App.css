@@ -338,3 +338,8 @@ body {
   transform: scale(1.05);
   display: inline-block; /* Nécessaire pour que le transform fonctionne */
 }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
