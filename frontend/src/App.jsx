@@ -4,71 +4,152 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://wishlist-potp.onrender.com';
+// Remplace ceci :
+// const API_BASE_URL = process.env.REACT_APP_API_URL;
+
+// Par ceci :
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 if (!API_BASE_URL) {
   console.error("ERREUR CRITIQUE : REACT_APP_API_URL n'est pas définie dans Vercel !");
 }
 
-const SortableItem = ({ item, index, deleteItem }) => {
+
+const SortableItem = ({ item, index, deleteItem, updateItem }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
   
   const style = { 
     transform: CSS.Transform.toString(transform), 
     transition: transition,
-    // On enlève cursor: 'grab' d'ici car ce n'est plus toute la div qui est draggable
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: '15px'
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px'
   };
 
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-      className="modern-card" 
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        
-        {/* L'icône de déplacement (Grip) avec les listeners */}
-        <span 
-          {...attributes} 
-          {...listeners} 
-          style={{ 
-            color: '#475569', 
-            fontSize: '20px', 
-            userSelect: 'none',
-            cursor: 'grab' // C'est ici qu'on indique que c'est déplaçable
-          }}
-        >
-          ⋮⋮
-        </span>
+  const handleBlur = (field, value) => {
+    if (value !== item[field]) {
+      updateItem(item.id, { [field]: value });
+    }
+  };
 
-        {/* Le reste de ton contenu (numéro, image, texte...) */}
-        <div style={{ background: '#3b82f6', color: 'white', width: '30px', height: '30px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+  // Style commun pour les inputs éditables
+  // Style commun pour les inputs éditables
+  const inputStyle = {
+    border: '1px solid transparent',
+    background: '#27364e',
+    borderRadius: '6px',
+    padding: '4px 8px',
+    transition: 'all 0.2s',
+    width: '100%',
+    cursor: 'text',
+    outline: 'none' // <--- AJOUTE CECI : Supprime le contour par défaut du navigateur
+  };
+
+  const EditableInput = ({ defaultValue, onSave, style }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  return (
+    <input 
+      defaultValue={defaultValue}
+      onFocus={() => setIsFocused(true)}
+      onBlur={(e) => {
+        setIsFocused(false);
+        onSave(e.target.value);
+      }}
+      style={{
+        ...style,
+        border: isFocused ? '1px solid #3b82f6' : '1px solid transparent',
+        outline: 'none',
+        transition: 'border 0.2s ease'
+      }}
+    />
+  );
+};
+
+  return (
+    <div ref={setNodeRef} style={style} className="modern-card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
+        {/* Grip pour le drag & drop */}
+        <span {...attributes} {...listeners} style={{ color: '#94a3b8', cursor: 'grab' }}>⋮⋮</span>
+        
+        {/* Numéro de préférence */}
+        <div style={{ background: '#3b82f6', color: 'white', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px' }}>
           {index + 1}
         </div>
 
         <img src={item.image_url} alt="" style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover' }} />
-        <div>
-          <strong style={{ fontSize: '1.1rem' }}>{item.title}</strong>
-          <p style={{ color: '#3b82f6', fontWeight: 'bold' }}>{item.price} €</p>
-          <a href={item.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            Voir le site
-          </a>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
+          {/* Titre éditable */}
+          <EditableInput 
+            defaultValue={item.title}
+            onSave={(val) => handleBlur('title', val)}
+            style={{ background: '#27364e', fontWeight: '600', color: '#ffffff', width: '30%', padding: '4px 8px', borderRadius: '6px' }}
+          />
+
+          {/* Prix éditable */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <EditableInput 
+              defaultValue={item.price}
+              onSave={(val) => handleBlur('price', val)}
+              style={{ background: '#27364e', color: '#ffffff', fontWeight: '800', width: '70px', padding: '4px 8px', borderRadius: '6px' }}
+            />
+            <span style={{ color: '#ffffff', fontWeight: '800' }}>€</span>
+          </div>
         </div>
       </div>
       
-      {/* Le bouton fonctionne maintenant car il n'est plus "couvert" par les listeners */}
-      <button className="delete-btn" onClick={() => deleteItem(item.id)}>
-        Supprimer
-      </button>
+      <button 
+  className="delete-btn" 
+  onClick={() => deleteItem(item.id)}
+  style={{ 
+    background: 'transparent', 
+    border: 'none', 
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.6,
+    transition: 'opacity 0.2s'
+  }}
+  onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+  onMouseOut={(e) => e.currentTarget.style.opacity = '0.6'}
+>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+</button>
     </div>
   );
 };
+
+
+
 function App() {
   const [user, setUser] = useState(localStorage.getItem('username'));
+
+const updateItem = async (id, updatedData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData)
+      });
+      
+      if (response.ok) {
+        setWishlist(prev => prev.map(item => 
+          item.id === id ? { ...item, ...updatedData } : item
+        ));
+        showToast("Modifications enregistrées !");
+      } else {
+        showToast("Erreur lors de la sauvegarde.");
+      }
+    } catch (error) {
+      console.error("Erreur serveur:", error);
+      showToast("Impossible de contacter le serveur.");
+    }
+  };
+  
   
   // 1. On récupère le pseudo depuis l'URL (ex: monapp.com/?view=jean)
   const urlParams = new URLSearchParams(window.location.search);
@@ -228,6 +309,7 @@ if (viewUser) {
         <h2>Bienvenue 👋</h2>
         <p style={{ color: '#94a3b8', marginBottom: '30px' }}>
           Connecte-toi à ton espace Wishlist pour commencer.
+          Ou Creer ton compte simplement en écrivant ton pseudo, pas besoin de mot de passe.
         </p>
         
         <input 
@@ -359,24 +441,24 @@ return (
   Partager ma liste
 </button>
   {/* SECTION MOINS DE 100€ */}
-  <h2>Budget (-100€)</h2>
-  <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-    <SortableContext items={under100} strategy={verticalListSortingStrategy}>
-      {under100.map((item, index) => (
-        <SortableItem key={item.id} item={item} index={index} deleteItem={deleteItem} />
-      ))}
-    </SortableContext>
-  </DndContext>
+ <h2>Budget (-100€)</h2>
+<DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+  <SortableContext items={under100} strategy={verticalListSortingStrategy}>
+    {under100.map((item, index) => (
+      <SortableItem key={item.id} item={item} index={index} deleteItem={deleteItem} updateItem={updateItem} />
+    ))}
+  </SortableContext>
+</DndContext>
 
-  {/* SECTION PLUS DE 100€ */}
-  <h2 style={{ marginTop: '40px' }}>Budget (+100€)</h2>
-  <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-    <SortableContext items={over100} strategy={verticalListSortingStrategy}>
-      {over100.map((item, index) => (
-        <SortableItem key={item.id} item={item} index={index} deleteItem={deleteItem} />
-      ))}
-    </SortableContext>
-  </DndContext>
+{/* SECTION PLUS DE 100€ */}
+<h2 style={{ marginTop: '40px' }}>Budget (+100€)</h2>
+<DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+  <SortableContext items={over100} strategy={verticalListSortingStrategy}>
+    {over100.map((item, index) => (
+      <SortableItem key={item.id} item={item} index={index} deleteItem={deleteItem} updateItem={updateItem} />
+    ))}
+  </SortableContext>
+</DndContext>
 </main>
     </div>
 
@@ -411,6 +493,13 @@ return (
 
 function PublicView({ username }) {
   const [items, setItems] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/items/${username}`)
@@ -429,7 +518,7 @@ const renderSection = (title, list, color) => (
     </h2>
     <div style={{ 
       display: 'grid', 
-      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+      gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(250px, 1fr))', 
       gap: '12px',
       overflowY: 'auto',
       paddingRight: '5px'
@@ -443,9 +532,8 @@ const renderSection = (title, list, color) => (
           display: 'flex',
           flexDirection: 'column',
           border: '1px solid #e2e8f0',
-          position: 'relative' // Pour positionner les éléments par-dessus
+          position: 'relative'
         }}>
-          {/* Numéro de préférence */}
           <div style={{ 
             position: 'absolute', top: '8px', left: '8px', zIndex: 1,
             background: color, color: 'white', padding: '2px 6px', 
@@ -459,46 +547,44 @@ const renderSection = (title, list, color) => (
           </div>
           
        <div style={{ 
-  display: 'flex', 
-  justifyContent: 'space-between', 
-  alignItems: 'center', 
-  marginTop: 'auto', // Pousse le bloc vers le bas du carré
-  paddingTop: '10px'
-}}>
-  {/* Le prix est bien là */}
-  <span style={{ fontSize: '0.85rem', fontWeight: '800', color: color }}>
-    {item.price} €
-  </span>
-  
-  {/* Lien avec animation */}
-  <a 
-    href={item.url} 
-    target="_blank" 
-    rel="noreferrer" 
-    style={{ 
-      fontSize: '0.7rem', 
-      textDecoration: 'none', 
-      color: '#64748b', 
-      background: '#f1f5f9', 
-      padding: '4px 10px', 
-      borderRadius: '6px',
-      transition: 'all 0.2s ease',
-      display: 'inline-block'
-    }}
-    onMouseOver={(e) => {
-      e.currentTarget.style.background = '#e2e8f0';
-      e.currentTarget.style.color = '#1e293b';
-      e.currentTarget.style.transform = 'scale(1.05)';
-    }}
-    onMouseOut={(e) => {
-      e.currentTarget.style.background = '#f1f5f9';
-      e.currentTarget.style.color = '#64748b';
-      e.currentTarget.style.transform = 'scale(1)';
-    }}
-  >
-    Voir le produit
-  </a>
-</div>
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginTop: 'auto', 
+          paddingTop: '10px'
+        }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: '800', color: color }}>
+            {item.price} €
+          </span>
+          
+          <a 
+            href={item.url} 
+            target="_blank" 
+            rel="noreferrer" 
+            style={{ 
+              fontSize: '0.7rem', 
+              textDecoration: 'none', 
+              color: '#64748b', 
+              background: '#f1f5f9', 
+              padding: '4px 10px', 
+              borderRadius: '6px',
+              transition: 'all 0.2s ease',
+              display: 'inline-block'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = '#e2e8f0';
+              e.currentTarget.style.color = '#1e293b';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = '#f1f5f9';
+              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            Voir le produit
+          </a>
+        </div>
         </div>
       ))}
     </div>
@@ -538,22 +624,21 @@ const renderSection = (title, list, color) => (
         </p>
       </header>
 
-     {/* Division avec bordure de séparation */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: '1fr 1px 1fr', // La colonne centrale (1px) sert de trait
-        gap: '40px',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1px 1fr', 
+        gap: isMobile ? '40px' : '40px',
         alignItems: 'start'
       }}>
         {renderSection("Budget (-100€)", under100, "#3b82f6")}
         
-        {/* La ligne de séparation */}
-        <div style={{ background: '#e2e8f0', height: '100%' }}></div>
+        {!isMobile && <div style={{ background: '#e2e8f0', height: '100%' }}></div>}
         
         {renderSection("Budget (+100€)", over100, "#8b5cf6")}
       </div>
     </div>
   );
+
 
 
 

@@ -173,3 +173,22 @@ def update_order(data: OrderUpdate, db: Session = Depends(get_db)):
             item.order_index = item_data['order']
     db.commit()
     return {"status": "success"}
+
+@app.put("/items/{item_id}")
+async def update_item(item_id: int, item_data: dict, db: Session = Depends(get_db)):
+    # 1. Chercher l'item dans la base
+    db_item = db.query(Item).filter(Item.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item non trouvé")
+    
+    # 2. Mettre à jour les champs si ils sont présents dans la requête
+    if "title" in item_data:
+        db_item.title = item_data["title"]
+    if "price" in item_data:
+        db_item.price = item_data["price"]
+    
+    # 3. Sauvegarder dans Neon
+    db.commit()
+    db.refresh(db_item)
+    
+    return {"message": "Item mis à jour avec succès"}
