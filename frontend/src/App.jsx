@@ -89,13 +89,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetch(`${process.env.REACT_APP_API_URL}/items/${user}`)
-        .then(res => res.json())
-        .then(data => setWishlist(data))
-        .catch(err => console.error("Erreur chargement wishlist:", err));
-    }
-  }, [user]);
+  console.log("Valeur de user dans App:", user); // Regarde si c'est null dans la console F12
+  if (user) {
+    fetch(`${process.env.REACT_APP_API_URL}/items/${user}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("Items reçus:", data);
+        setWishlist(data);
+      })
+      .catch(err => console.error("Erreur chargement:", err));
+  }
+}, [user]);
 
   const deleteItem = async (id) => {
     try {
