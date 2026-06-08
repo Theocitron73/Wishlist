@@ -4,7 +4,11 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+
+if (!API_BASE_URL) {
+  console.error("ERREUR CRITIQUE : REACT_APP_API_URL n'est pas définie dans Vercel !");
+}
 
 const SortableItem = ({ item, index, deleteItem }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id });
