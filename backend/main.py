@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, HTTPException
@@ -14,9 +16,12 @@ from sqlalchemy.orm import relationship
 from playwright.async_api import async_playwright
 from typing import List
 
-
+load_dotenv()
 # Remplace par ta vraie URL Neon que tu trouves dans ton dashboard
-DATABASE_URL = "postgresql://neondb_owner:npg_DXnI5P2mASUM@ep-morning-resonance-ab3z4j89-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("La variable DATABASE_URL n'est pas définie dans le fichier .env")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -44,10 +49,12 @@ def get_db():
 # C'est ici que tu définis l'instance "app"
 app = FastAPI()
 
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 # Configuration CORS pour autoriser ton frontend React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
